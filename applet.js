@@ -17,8 +17,10 @@ const GLib = imports.gi.GLib;
 // }
 
 const TIMER_INTERVAL_MS = 1000;
-const ONE_HOUR_IN_SECONDS = 3600;
+
 const ONE_MIN_IN_SECONDS = 60;
+const ONE_HOUR_IN_SECONDS = ONE_MIN_IN_SECONDS * 60;
+const ONE_DAY_IN_SECONDS = ONE_HOUR_IN_SECONDS * 24;
 
 const BUTTON_LABEL_START = "Start";
 const BUTTON_LABEL_RESUME = "Resume";
@@ -36,6 +38,19 @@ const ICON_SIZE_SM = 12;
 
 const NOTIFICATION_TITLE = "Timer";
 const NOTIFICATION_MSG = "Time Up!";
+
+const DIGIT_NAMES = {
+    SECOND_TENS: 'SECOND_TENS',
+    SECOND_ONES: 'SECOND_ONES',
+    MINUTE_TENS: 'MINUTE_TENS',
+    MINUTE_ONES: 'MINUTE_ONES',
+    HOUR_TENS: 'HOUR_TENS',
+    HOUR_ONES: 'HOUR_ONES'
+};
+
+const CLOCK_INCREMENT = 'INCREMENT';
+const CLOCK_DECREMENT = 'DECREMENT';
+
 
 function MyApplet(metadata, orientation, panelHeight, instanceId) {
     this._init(metadata, orientation, panelHeight, instanceId);
@@ -59,8 +74,8 @@ MyApplet.prototype = {
             this.timerInitialSec = 3728;
             this.timerCurrentSec = this.timerInitialSec;
 
-            const clockObj = getClockObjectFromSeconds(this.timerInitialSec);
-            global.log(clockObj)
+            // const clockObj = getClockValuesFromSeconds(this.timerInitialSec);
+            // global.log(clockObj)
 
             this.timerClockMenuItem = '';
             this.timerClockMenuItemSec = '';
@@ -145,7 +160,10 @@ MyApplet.prototype = {
         const {
             secondTensColumn,
             secondOnesColumn,
-            colon
+            minuteOnesColumn,
+            minuteTensColumn,
+            hourOnesColumn,
+            hourTensColumn
         } = this.getClockElements();
 
         const clockBox = new St.BoxLayout({
@@ -153,7 +171,12 @@ MyApplet.prototype = {
             x_align: Clutter.ActorAlign.CENTER
         });
 
-        clockBox.add_child(colon);
+        clockBox.add_child(hourTensColumn);
+        clockBox.add_child(hourOnesColumn);
+        clockBox.add_child(getClockDigit(':'));
+        clockBox.add_child(minuteTensColumn);
+        clockBox.add_child(minuteOnesColumn);
+        clockBox.add_child(getClockDigit(':'));
         clockBox.add_child(secondTensColumn);
         clockBox.add_child(secondOnesColumn);
 
@@ -166,78 +189,77 @@ MyApplet.prototype = {
 
     getClockElements() {
         const {
-            secondsOne,
-            secondsTen,
-            minutesOne,
-            minutesTen,
-            hoursOne,
-            hoursTen
-        } = getClockObjectFromSeconds(this.timerInitialSec);
+            SECOND_TENS,
+            SECOND_ONES,
+            MINUTE_TENS,
+            MINUTE_ONES,
+            HOUR_TENS,
+            HOUR_ONES
+        } = DIGIT_NAMES;
 
-        const iconIncrement = makeIcon(ICON_NAME_INCR, ICON_SIZE_SM);
-        const iconDecrement = makeIcon(ICON_NAME_DECR, ICON_SIZE_SM);
+        const {
+            secondOnes,
+            secondTens,
+            minuteOnes,
+            minuteTens,
+            hourOnes,
+            hourTens
+        } = getClockValuesFromSeconds(this.timerInitialSec);
 
-        // SECOND ONES
-
-        const incrementButtonSecOnes = makeButton(iconIncrement);
-        // incrementButtonSecOnes.connect('clicked', () => {
-        //     this.incrementClockDigit('secondOnesDigit');
-        //     // return true;
-        // });
-        // incrementButtonSecOnes.setSensitive(false);
-        const decrementButtonSecOnes = makeButton(iconDecrement);
-
-        this.secondOnesDigit = makeClockDigit(`${secondsOne}`, 'secondOnesDigit');
-        // this.secondOnesDigit.connect('changed::this.timerInitialSec', () => {
-        //     this.secondOnesDigit.child.text = `${this.timerInitialSec}`
-        // })
-        const colon = makeClockDigit(':');
-
-        // this.secondOnesDigit.child.set_text('10')
-        // global.log('this.secondOnesDigit.child.text', this.secondOnesDigit.child.text)
-
-        const secondOnesColumn = new St.BoxLayout({
-            name: 'secondOnesColumn',
-            vertical: true,
-            y_align: Clutter.ActorAlign.CENTER
-        });
-
-        secondOnesColumn.add_child(incrementButtonSecOnes);
-        secondOnesColumn.add_child(this.secondOnesDigit);
-        secondOnesColumn.add_child(decrementButtonSecOnes);
-
-
-        // SECOND TENS
-        
-        const incrementButtonSecTens = makeButton(iconIncrement);
-        // incrementButtonSecTens.connect('clicked', () => {
-        //     this.incrementClockDigit('secondTensDigit');
-        // });
-        const decrementButtonSecTens = makeButton(iconDecrement);
-
-        this.secondTensDigit = makeClockDigit(`${secondsTen}`, 'secondTensDigit');
-
-        const secondTensColumn = new St.BoxLayout({
-            name: 'secondTensColumn',
-            vertical: true,
-            y_align: Clutter.ActorAlign.CENTER
-        });
-
-        secondTensColumn.add_child(incrementButtonSecTens);
-        secondTensColumn.add_child(this.secondTensDigit);
-        secondTensColumn.add_child(decrementButtonSecTens);
+        const secondTensColumn = this.getClockColumn(SECOND_TENS, secondTens);
+        const secondOnesColumn = this.getClockColumn(SECOND_ONES, secondOnes);
+        const minuteTensColumn = this.getClockColumn(MINUTE_TENS, minuteTens);
+        const minuteOnesColumn = this.getClockColumn(MINUTE_ONES, minuteOnes);
+        const hourTensColumn = this.getClockColumn(HOUR_TENS, hourTens);
+        const hourOnesColumn = this.getClockColumn(HOUR_ONES, hourOnes);
 
         return {
             secondTensColumn,
             secondOnesColumn,
-            colon,
+            minuteOnesColumn,
+            minuteTensColumn,
+            hourOnesColumn,
+            hourTensColumn
         }
     },
 
+    getClockColumn(digitName, digitValue) {
+        // const digitName = `${columnName}Digit`;
+
+        const iconIncrement = getIcon(ICON_NAME_INCR, ICON_SIZE_SM);
+        const iconDecrement = getIcon(ICON_NAME_DECR, ICON_SIZE_SM);
+
+        const incrementButton = getButton(iconIncrement);
+        incrementButton.connect('clicked', () => {
+            this.adjustClockDigit(CLOCK_INCREMENT, digitName);
+        });
+
+        const decrementButton = getButton(iconDecrement);
+        decrementButton.connect('clicked', () => {
+            this.adjustClockDigit(CLOCK_DECREMENT, digitName);
+        });
+
+        // Sets digit LABEL on instance level so it can be updated elsewhere
+        this[digitName] = getClockDigit(`${digitValue}`, digitName);
+        global.log(digitName, ':', this[digitName])
+
+        const column = new St.BoxLayout({
+            // name: 'secondTensColumn',
+            vertical: true,
+            y_align: Clutter.ActorAlign.CENTER
+        });
+
+        column.add_child(incrementButton);
+        column.add_child(this[digitName]);
+        column.add_child(decrementButton);
+
+        return column;
+    },
+
     getControlBar() {
-        const iconStart = makeIcon(ICON_NAME_START, ICON_SIZE_LG);
-        const iconPause = makeIcon(ICON_NAME_PAUSE, ICON_SIZE_LG);
-        const iconStop = makeIcon(ICON_NAME_STOP, ICON_SIZE_LG);
+        const iconStart = getIcon(ICON_NAME_START, ICON_SIZE_LG);
+        const iconPause = getIcon(ICON_NAME_PAUSE, ICON_SIZE_LG);
+        const iconStop = getIcon(ICON_NAME_STOP, ICON_SIZE_LG);
 
         // const buttonPause = new St.Button({
         //     reactive: true,
@@ -248,8 +270,8 @@ MyApplet.prototype = {
         //     child: iconPause
         // })
 
-        this.startPauseButton = makeButton(iconStart);
-        this.resetButton = makeButton(iconStop);
+        this.startPauseButton = getButton(iconStart);
+        this.resetButton = getButton(iconStop);
 
         this.startPauseButton.connect('clicked', () => {
             this.startTimer();
@@ -364,11 +386,69 @@ MyApplet.prototype = {
         this.timerClockMenuItem.label.text = clockString;
         this.timerClockMenuItemSec.label.text = `${this.timerCurrentSec}`;
         this.set_applet_tooltip(clockString);
+
+        const {
+            SECOND_TENS,
+            SECOND_ONES,
+            MINUTE_TENS,
+            MINUTE_ONES,
+            HOUR_TENS,
+            HOUR_ONES
+        } = DIGIT_NAMES;
+
+        const {
+            secondOnes,
+            secondTens,
+            minuteOnes,
+            minuteTens,
+            hourOnes,
+            hourTens
+        } = getClockValuesFromSeconds(this.timerCurrentSec);
+
+        this[HOUR_TENS].child.set_text(`${hourTens}`);
+        this[HOUR_ONES].child.set_text(`${hourOnes}`);
+        this[MINUTE_TENS].child.set_text(`${minuteTens}`);
+        this[MINUTE_ONES].child.set_text(`${minuteOnes}`);
+        this[SECOND_TENS].child.set_text(`${secondTens}`);
+        this[SECOND_ONES].child.set_text(`${secondOnes}`);
     },
 
-    incrementClockDigit(digitType) {
+    adjustClockDigit(adjustmentType, digitName) {
+        const {
+            SECOND_TENS,
+            SECOND_ONES,
+            MINUTE_TENS,
+            MINUTE_ONES,
+            HOUR_TENS,
+            HOUR_ONES
+        } = DIGIT_NAMES;
+
+        const digitToSeconds = {
+            [HOUR_TENS]: ONE_HOUR_IN_SECONDS * 10,
+            [HOUR_ONES]: ONE_HOUR_IN_SECONDS,
+            [MINUTE_TENS]: ONE_MIN_IN_SECONDS * 10,
+            [MINUTE_ONES]: ONE_MIN_IN_SECONDS,
+            [SECOND_TENS]: 10,
+            [SECOND_ONES]: 1
+        };
+
+        const secondsDelta = digitToSeconds[DIGIT_NAMES[digitName]];
+
+        if (adjustmentType === CLOCK_INCREMENT) {
+            const newSecondsValue = this.timerCurrentSec + secondsDelta;
+            if (newSecondsValue <= ONE_DAY_IN_SECONDS) {
+                this.timerCurrentSec = newSecondsValue;
+            }
+        } else if (adjustmentType === CLOCK_DECREMENT) {
+            const newSecondsValue = this.timerCurrentSec - secondsDelta;
+            if (newSecondsValue >= 0) {
+                this.timerCurrentSec = newSecondsValue;
+            }
+        }
+
+        this.updateClockText();
+
         // if (this[digitType] < 9) {
-            ++this[digitType];
             // this.clockDigitSecondOnesLabel.get_child().set_text(`${this[digitType]}`)
             // TODO: Idea is that numerical digit is this[digitType] (ex: this.clockDigitSecondOnes),
             // and there is an assoc label string like this.clockDigitSecondOnesLabel that we update.
@@ -408,14 +488,14 @@ function getClockStringFromSeconds(totalSeconds) {
     return hourStr + minStr + secStr;
 }
 
-function getClockObjectFromSeconds(totalSeconds) {
+function getClockValuesFromSeconds(totalSeconds) {
     let [
-        secondsOne,
-        secondsTen,
-        minutesOne,
-        minutesTen,
-        hoursOne,
-        hoursTen
+        secondOnes,
+        secondTens,
+        minuteOnes,
+        minuteTens,
+        hourOnes,
+        hourTens
     ] = [0, 0, 0, 0, 0, 0];
 
     let remainder = totalSeconds;
@@ -426,10 +506,10 @@ function getClockObjectFromSeconds(totalSeconds) {
 
         if (quotient > 9) {
             const numString = String(quotient);
-            hoursTen = Number(numString[0]);
-            hoursOne = Number(numString[1]);
+            hourTens = Number(numString[0]);
+            hourOnes = Number(numString[1]);
         } else {
-            hoursOne = quotient;
+            hourOnes = quotient;
         }
     }
 
@@ -439,30 +519,30 @@ function getClockObjectFromSeconds(totalSeconds) {
         
         if (quotient > 9) {
             const numString = String(quotient);
-            minutesTen = Number(numString[0]);
-            minutesOne = Number(numString[1]);
+            minuteTens = Number(numString[0]);
+            minuteOnes = Number(numString[1]);
         } else {
-            minutesOne = quotient;
+            minuteOnes = quotient;
         }
     }
 
     if (remainder >= 0) {
         if (remainder > 9) {
             const numString = String(remainder);
-            secondsTen = Number(numString[0]);
-            secondsOne = Number(numString[1]);
+            secondTens = Number(numString[0]);
+            secondOnes = Number(numString[1]);
         } else {
-            secondsOne = remainder;
+            secondOnes = remainder;
         }
     }
 
     return {
-        secondsOne,
-        secondsTen,
-        minutesOne,
-        minutesTen,
-        hoursOne,
-        hoursTen
+        secondOnes,
+        secondTens,
+        minuteOnes,
+        minuteTens,
+        hourOnes,
+        hourTens
     };
 }
 
@@ -497,7 +577,7 @@ function clearInterval(id) {
     }
 };
 
-function makeIcon(name, size) {
+function getIcon(name, size) {
     return new St.Icon({
         icon_type: St.IconType.SYMBOLIC,
         icon_name: name,
@@ -507,7 +587,7 @@ function makeIcon(name, size) {
     })
 }
 
-function makeButton(iconName) {
+function getButton(iconName) {
     const button = new St.Button({
         reactive: true,
         can_focus: true,
@@ -528,7 +608,7 @@ function makeButton(iconName) {
     return button;
 }
 
-function makeClockDigit(text, name = null) {
+function getClockDigit(text, name = null) {
     const label = new St.Label({
         text,
         style: "font-size: 20px;",
