@@ -8,9 +8,9 @@ const Clutter = imports.gi.Clutter;
 const GLib = imports.gi.GLib;
 // const SignalManager = imports.misc.signalManager;
 // const Gettext = imports.gettext;
-// const UUID = "ntimer@nate";
+// const UUID = 'ntimer@nate';
 
-// Gettext.bindtextdomain(UUID, GLib.get_home_dir() + "/.local/share/locale");
+// Gettext.bindtextdomain(UUID, GLib.get_home_dir() + '/.local/share/locale');
 
 // function _(str) {
 //     return Gettext.dgettext(UUID, str);
@@ -22,22 +22,22 @@ const ONE_MIN_IN_SECONDS = 60;
 const ONE_HOUR_IN_SECONDS = ONE_MIN_IN_SECONDS * 60;
 const ONE_DAY_IN_SECONDS = ONE_HOUR_IN_SECONDS * 24;
 
-const BUTTON_LABEL_START = "Start";
-const BUTTON_LABEL_RESUME = "Resume";
-const BUTTON_LABEL_PAUSE = "Pause";
-const BUTTON_LABEL_RESET = "Reset";
+const BUTTON_LABEL_START = 'Start';
+const BUTTON_LABEL_RESUME = 'Resume';
+const BUTTON_LABEL_PAUSE = 'Pause';
+const BUTTON_LABEL_RESET = 'Reset';
 
-const ICON_NAME_START = "media-playback-start-symbolic";
-const ICON_NAME_PAUSE = "media-playback-pause-symbolic";
-const ICON_NAME_STOP = "media-playback-stop-symbolic";
-const ICON_NAME_INCR = "list-add-symbolic";
-const ICON_NAME_DECR = "list-remove-symbolic";
+const ICON_NAME_START = 'media-playback-start-symbolic';
+const ICON_NAME_PAUSE = 'media-playback-pause-symbolic';
+const ICON_NAME_STOP = 'media-playback-stop-symbolic';
+const ICON_NAME_INCR = 'list-add-symbolic';
+const ICON_NAME_DECR = 'list-remove-symbolic';
 
 const ICON_SIZE_LG = 20;
 const ICON_SIZE_SM = 12;
 
-const NOTIFICATION_TITLE = "Timer";
-const NOTIFICATION_MSG = "Time Up!";
+const NOTIFICATION_TITLE = 'Timer';
+const NOTIFICATION_MSG = 'Time Up!';
 
 const DIGIT_NAMES = {
     SECOND_TENS: 'SECOND_TENS',
@@ -63,13 +63,13 @@ MyApplet.prototype = {
         Applet.IconApplet.prototype._init.call(this, orientation, panelHeight, instanceId);
 
         try {
-            this.set_applet_icon_symbolic_name("clock");
-            // this.set_applet_icon_symbolic_name("alarm");
-            this.set_applet_tooltip(_("Hey Shroooooo!"));
+            this.set_applet_icon_symbolic_name('alarm');
+            // this.set_applet_icon_symbolic_name('alarm');
+            this.set_applet_tooltip(_('Simple Timer'));
 
             // this.menuManager = new PopupMenu.PopupMenuManager(this);
             // this.menu = new Applet.AppletPopupMenu(this, this._orientation);
-            // this.menu.addAction("play", () => { this.showNotification(); })
+            // this.menu.addAction('play', () => { this.showNotification(); })
             this.timerId = null;
             this.timerInitialSec = 3728;
             this.timerCurrentSec = this.timerInitialSec;
@@ -92,7 +92,7 @@ MyApplet.prototype = {
             // this.buildBoxLayout();
 
             // this._signalManager = new SignalManager.SignalManager(null);
-            // this._signalManager.connect(this, "changed::timerInitialSec", () => {
+            // this._signalManager.connect(this, 'changed::timerInitialSec', () => {
             //     this.secondOnesDigit.child.text = `${this.timerInitialSec}`
             // });
         }
@@ -110,7 +110,7 @@ MyApplet.prototype = {
     },
 
     buildPopupMenu() {
-        this.actor.add_style_class_name("timer");
+        this.actor.add_style_class_name('timer');
 
         this.menuManager = new PopupMenu.PopupMenuManager(this);
         this.menu = new Applet.AppletPopupMenu(this, this._orientation);
@@ -125,36 +125,23 @@ MyApplet.prototype = {
         this.timerClockMenuItemSec.setSensitive(false);
 
         // Add menu items
-        this.menu.addMenuItem(this.timerClockMenuItem);
-        this.menu.addMenuItem(this.timerClockMenuItemSec);
+        // this.menu.addMenuItem(this.timerClockMenuItem);
+        // this.menu.addMenuItem(this.timerClockMenuItemSec);
 
-        const menuSection = new PopupMenu.PopupMenuSection({ style_class: "popup-menu-section" });
+        const menuSection = new PopupMenu.PopupMenuSection({ style_class: 'popup-menu-section' });
         
-        this.controlBar = this.getControlBar();
         this.clock = this.getClock();
+        this.controlBar = this.getControlBar();
         // this.clock.get_children()[0].get_children()[1].child.set_text('10')
         // global.log(' this.clock.get_children()[0].get_children()[1]', this.clock.get_children()[0].get_children()[1])
         
-        menuSection.actor.add_actor(this.controlBar);
         menuSection.actor.add_actor(this.clock);
+        menuSection.actor.add_actor(this.controlBar);
         
         this.menu.addMenuItem(menuSection);
 
         this.menuManager.addMenu(this.menu);
     },
-
-    // updateClockUI() {
-    //     const [
-    //         secondOnes,
-    //         colon
-    //     ] = this.clock.get_children();
-
-    //     const [
-    //         secondOnesInc,
-    //         secondOnesDigit,
-    //         secondOnesDec
-    //     ] = secondOnes.getChildren();
-    // },
 
     getClock() {
         const {
@@ -179,10 +166,6 @@ MyApplet.prototype = {
         clockBox.add_child(getClockDigit(':'));
         clockBox.add_child(secondTensColumn);
         clockBox.add_child(secondOnesColumn);
-
-        // Set on instance level so they can be updated from anywhere
-        // Selected 1st index since each is a BoxLayout with three elements (inc, digit, dec)
-        // this.secondOnesDigit = secondOnes.get_child_by_index;
 
         return clockBox;
     },
@@ -224,34 +207,33 @@ MyApplet.prototype = {
     },
 
     getClockColumn(digitName, digitValue) {
-        // const digitName = `${columnName}Digit`;
-
         const iconIncrement = getIcon(ICON_NAME_INCR, ICON_SIZE_SM);
         const iconDecrement = getIcon(ICON_NAME_DECR, ICON_SIZE_SM);
 
-        const incrementButton = getButton(iconIncrement);
-        incrementButton.connect('clicked', () => {
+        const incrementButtonName = `${DIGIT_NAMES[digitName]}_INC`;
+        const decrementButtonName = `${DIGIT_NAMES[digitName]}_DEC`;
+
+        this[incrementButtonName] = getButton(iconIncrement);
+        this[incrementButtonName].connect('clicked', () => {
             this.adjustClockDigit(CLOCK_INCREMENT, digitName);
         });
 
-        const decrementButton = getButton(iconDecrement);
-        decrementButton.connect('clicked', () => {
+        this[decrementButtonName] = getButton(iconDecrement);
+        this[decrementButtonName].connect('clicked', () => {
             this.adjustClockDigit(CLOCK_DECREMENT, digitName);
         });
 
-        // Sets digit LABEL on instance level so it can be updated elsewhere
-        this[digitName] = getClockDigit(`${digitValue}`, digitName);
-        global.log(digitName, ':', this[digitName])
+        // Set digit on instance level so it can be updated elsewhere
+        this[digitName] = getClockDigit(`${digitValue}`);
 
         const column = new St.BoxLayout({
-            // name: 'secondTensColumn',
             vertical: true,
             y_align: Clutter.ActorAlign.CENTER
         });
 
-        column.add_child(incrementButton);
+        column.add_child(this[incrementButtonName]);
         column.add_child(this[digitName]);
-        column.add_child(decrementButton);
+        column.add_child(this[decrementButtonName]);
 
         return column;
     },
@@ -265,20 +247,26 @@ MyApplet.prototype = {
         //     reactive: true,
         //     can_focus: true,
         //     // It is challenging to get a reasonable style on all themes. I have tried using the 'sound-player-overlay' class but didn't get it working. However might be possible anyway.  
-        //     style_class: "popup-menu-item",
-        //     // style: "width: 20px; padding: 10px!important",
+        //     style_class: 'popup-menu-item',
+        //     // style: 'width: 20px; padding: 10px!important',
         //     child: iconPause
         // })
 
-        this.startPauseButton = getButton(iconStart);
+        this.startPauseButton = getButton(iconStart, true);
         this.resetButton = getButton(iconStop);
 
-        this.startPauseButton.connect('clicked', () => {
-            this.startTimer();
+        this.startPauseButton.connect('clicked', (button) => {
+            // const isActive = this.startPauseButton.get_active();
+            // global.log('isActive', isActive);
+            if (button.checked) {
+                this.startTimer();
+            } else {
+                this.pauseTimer();
+            }
             // return true;
         });
 
-        this.resetButton.connect('clicked', () => {
+        this.resetButton.connect('clicked', (button) => {
             this.resetTimer();
             // return true;
         });
@@ -295,7 +283,25 @@ MyApplet.prototype = {
         controlBar.add_child(this.startPauseButton);
         controlBar.add_child(this.resetButton);
 
+        // this.resetButton.set_style('height:0;')
+
+        global.log('this.resetButton', this.resetButton)
+
         return controlBar;
+    },
+
+    showAllClockAdjustButtons() {
+        Object.keys(DIGIT_NAMES).forEach(digitName => {
+            this[`${digitName}_INC`].show();
+            this[`${digitName}_DEC`].show();
+        });
+    },
+
+    hideAllClockAdjustButtons() {
+        Object.keys(DIGIT_NAMES).forEach(digitName => {
+            this[`${digitName}_INC`].hide();
+            this[`${digitName}_DEC`].hide();
+        });
     },
 
     addNotificationSource() {
@@ -325,11 +331,14 @@ MyApplet.prototype = {
             TIMER_INTERVAL_MS
         );
 
-        this.startPauseButton.icon.set_icon_name(ICON_NAME_PAUSE);
+        // global.log('this.startPauseButton', this.startPauseButton)
 
-        this.startButton.setSensitive(false);
-        this.pauseButton.setSensitive(true);
-        this.resetButton.setSensitive(true);
+        this.startPauseButton.child.set_icon_name(ICON_NAME_PAUSE);
+        this.hideAllClockAdjustButtons();
+
+        // this.startButton.setSensitive(false);
+        // this.pauseButton.setSensitive(true);
+        // this.resetButton.setSensitive(true);
     },
 
     pauseTimer() {
@@ -338,23 +347,26 @@ MyApplet.prototype = {
         }
 
         this.clearTimerInterval();
+        this.startPauseButton.child.set_icon_name(ICON_NAME_START);
+        this.showAllClockAdjustButtons();
+
         // clearInterval(this.timerId);
         // this.timerCurrentSec = this.timerInitialSec;
         // this.timerId = null;
         // this.timerClockMenuItem.label.text = `${this.timerInitialSec}`;
         // this.resetButton.setSensitive(false);
-        // this.set_applet_label("");
+        // this.set_applet_label('');
 
         // this.startPauseButton.child = ICON_NAME_PAUSE;
 
-        this.startButton.setSensitive(true);
-        this.startButton.label.text = BUTTON_LABEL_RESUME;
+        // this.startButton.setSensitive(true);
+        // this.startButton.label.text = BUTTON_LABEL_RESUME;
     },
 
     resetTimer() {
-        if (this.timerId === null) {
-            return;
-        }
+        // if (this.timerId === null) {
+        //     return;
+        // }
 
         this.clearTimerInterval();
         // clearInterval(this.timerId);
@@ -362,12 +374,16 @@ MyApplet.prototype = {
         // this.timerId = null;
 
         this.updateClockText();
-        this.startButton.label.text = BUTTON_LABEL_START;
+        this.startPauseButton.set_checked(false);
+        this.startPauseButton.child.set_icon_name(ICON_NAME_START);
+        this.showAllClockAdjustButtons();
 
-        this.resetButton.setSensitive(false);
-        this.pauseButton.setSensitive(false);
-        this.startButton.setSensitive(true);
-        // this.set_applet_label("");
+        // this.startButton.label.text = BUTTON_LABEL_START;
+
+        // this.resetButton.setSensitive(false);
+        // this.pauseButton.setSensitive(false);
+        // this.startButton.setSensitive(true);
+        // this.set_applet_label('');
     },
 
     tickTimer() {
@@ -380,6 +396,16 @@ MyApplet.prototype = {
         clearInterval(this.timerId);
         this.timerId = null;
     },
+
+    // updateControlBar() {
+    //     if (this.timerId === null) {
+    //         this.startPauseButton.checked = false;
+    //         this.startPauseButton.child.set_icon_name(ICON_NAME_START);
+    //     } else {
+    //         this.startPauseButton.checked = true;
+    //         this.startPauseButton.child.set_icon_name(ICON_NAME_PAUSE);
+    //     }
+    // },
 
     updateClockText() {
         const clockString = getClockStringFromSeconds(this.timerCurrentSec);
@@ -437,34 +463,21 @@ MyApplet.prototype = {
         if (adjustmentType === CLOCK_INCREMENT) {
             const newSecondsValue = this.timerCurrentSec + secondsDelta;
             if (newSecondsValue <= ONE_DAY_IN_SECONDS) {
-                this.timerCurrentSec = newSecondsValue;
+                this.timerCurrentSec = this.timerInitialSec = newSecondsValue;
             }
         } else if (adjustmentType === CLOCK_DECREMENT) {
             const newSecondsValue = this.timerCurrentSec - secondsDelta;
             if (newSecondsValue >= 0) {
-                this.timerCurrentSec = newSecondsValue;
+                this.timerCurrentSec = this.timerInitialSec = newSecondsValue;
             }
         }
 
         this.updateClockText();
-
-        // if (this[digitType] < 9) {
-            // this.clockDigitSecondOnesLabel.get_child().set_text(`${this[digitType]}`)
-            // TODO: Idea is that numerical digit is this[digitType] (ex: this.clockDigitSecondOnes),
-            // and there is an assoc label string like this.clockDigitSecondOnesLabel that we update.
-        // }
-        // switch(digitType) {
-        //     case 'secondOnes':
-        //         this.clockDigitSecondOnes < 9 && ++this.clockDigitSecondOnes;
-        //         break;
-        //     default:
-        //         break;
-        // }
     }
 };
 
 function getClockStringFromSeconds(totalSeconds) {
-    let [hourStr, minStr, secStr] = ['', '', ''];
+    let [hourStr, minStr, secStr] = ['', '00:', '00'];
     let remainder = totalSeconds;
 
     if (remainder >= ONE_HOUR_IN_SECONDS) {
@@ -582,19 +595,21 @@ function getIcon(name, size) {
         icon_type: St.IconType.SYMBOLIC,
         icon_name: name,
         icon_size: size,
-        // style: "icon-size: 20px;",
+        // style: 'icon-size: 20px;',
         // style_class: 'popup-menu-icon' // this specifies the icon-size
     })
 }
 
-function getButton(iconName) {
+function getButton(iconName, isToggle = false) {
     const button = new St.Button({
+        // name: buttonName,
+        toggle_mode: isToggle,
         reactive: true,
-        can_focus: true,
-        track_hover: true,
+        // can_focus: true,
+        // track_hover: true,
         // It is challenging to get a reasonable style on all themes. I have tried using the 'sound-player-overlay' class but didn't get it working. However might be possible anyway.  
-        style_class: "popup-menu-item",
-        // style: "width: 20px; padding: 10px!important",
+        style_class: 'popup-menu-item',
+        style: 'width: 20px; padding: 10px 5px;',
         child: iconName
     });
 
@@ -608,15 +623,13 @@ function getButton(iconName) {
     return button;
 }
 
-function getClockDigit(text, name = null) {
+function getClockDigit(text) {
     const label = new St.Label({
         text,
-        style: "font-size: 20px;",
+        style: 'font-size: 20px;',
     });
 
-    const bin = new St.Bin({
-        name,
-    });
+    const bin = new St.Bin();
     bin.set_child(label);
 
     return bin;
