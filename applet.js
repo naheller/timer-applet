@@ -27,11 +27,12 @@ const BUTTON_LABEL_RESUME = 'Resume';
 const BUTTON_LABEL_PAUSE = 'Pause';
 const BUTTON_LABEL_RESET = 'Reset';
 
+// Found in /usr/share/icons/<theme-name>/symbolic/
 const ICON_NAME_START = 'media-playback-start-symbolic';
 const ICON_NAME_PAUSE = 'media-playback-pause-symbolic';
 const ICON_NAME_STOP = 'media-playback-stop-symbolic';
-const ICON_NAME_INCR = 'list-add-symbolic';
-const ICON_NAME_DECR = 'list-remove-symbolic';
+const ICON_NAME_INCR = 'go-up-symbolic';
+const ICON_NAME_DECR = 'go-down-symbolic';
 
 const ICON_SIZE_LG = 20;
 const ICON_SIZE_SM = 12;
@@ -50,6 +51,12 @@ const DIGIT_NAMES = {
 
 const CLOCK_INCREMENT = 'INCREMENT';
 const CLOCK_DECREMENT = 'DECREMENT';
+
+const CLOCK_STYLE = 'margin: 0 10px 10px 10px;'
+const CLOCK_STYLE_ACTIVE = 'margin: 10px 10px 20px 10px;';
+const CLOCK_DIGIT_STYLE = 'margin: 0 10px 10px 10px;'
+const CLOCK_DIGIT_STYLE_ACTIVE = 'margin: 10px 10px 20px 10px;';
+const CLOCK_BUTTON_STYLE = 'width: 20px; padding: 10px 0;';
 
 
 function MyApplet(metadata, orientation, panelHeight, instanceId) {
@@ -155,8 +162,12 @@ MyApplet.prototype = {
 
         const clockBox = new St.BoxLayout({
             name: 'clock',
-            x_align: Clutter.ActorAlign.CENTER
+            x_align: Clutter.ActorAlign.CENTER,
+            // y_align: Clutter.ActorAlign.CENTER,
+            style: CLOCK_STYLE
         });
+
+        global.log('clockBox.get_style_class_name()', clockBox.get_style_class_name())
 
         clockBox.add_child(hourTensColumn);
         clockBox.add_child(hourOnesColumn);
@@ -207,28 +218,31 @@ MyApplet.prototype = {
     },
 
     getClockColumn(digitName, digitValue) {
+
         const iconIncrement = getIcon(ICON_NAME_INCR, ICON_SIZE_SM);
         const iconDecrement = getIcon(ICON_NAME_DECR, ICON_SIZE_SM);
 
         const incrementButtonName = `${DIGIT_NAMES[digitName]}_INC`;
         const decrementButtonName = `${DIGIT_NAMES[digitName]}_DEC`;
 
-        this[incrementButtonName] = getButton(iconIncrement);
+        // Set buttons instance level so they can be shown/hidden later
+        this[incrementButtonName] = getButton(iconIncrement, false, CLOCK_BUTTON_STYLE);
         this[incrementButtonName].connect('clicked', () => {
             this.adjustClockDigit(CLOCK_INCREMENT, digitName);
         });
 
-        this[decrementButtonName] = getButton(iconDecrement);
+        this[decrementButtonName] = getButton(iconDecrement, false, CLOCK_BUTTON_STYLE);
         this[decrementButtonName].connect('clicked', () => {
             this.adjustClockDigit(CLOCK_DECREMENT, digitName);
         });
 
-        // Set digit on instance level so it can be updated elsewhere
+        // Set digit on instance level so it can be updated later
         this[digitName] = getClockDigit(`${digitValue}`);
 
         const column = new St.BoxLayout({
             vertical: true,
-            y_align: Clutter.ActorAlign.CENTER
+            y_align: Clutter.ActorAlign.CENTER,
+            // style: 'height: 100px;'
         });
 
         column.add_child(this[incrementButtonName]);
@@ -285,7 +299,7 @@ MyApplet.prototype = {
 
         // this.resetButton.set_style('height:0;')
 
-        global.log('this.resetButton', this.resetButton)
+        // global.log('this.resetButton', this.resetButton)
 
         return controlBar;
     },
@@ -335,6 +349,7 @@ MyApplet.prototype = {
 
         this.startPauseButton.child.set_icon_name(ICON_NAME_PAUSE);
         this.hideAllClockAdjustButtons();
+        this.clock.set_style(CLOCK_STYLE_ACTIVE)
 
         // this.startButton.setSensitive(false);
         // this.pauseButton.setSensitive(true);
@@ -348,6 +363,7 @@ MyApplet.prototype = {
 
         this.clearTimerInterval();
         this.startPauseButton.child.set_icon_name(ICON_NAME_START);
+        this.clock.set_style(CLOCK_STYLE)
         this.showAllClockAdjustButtons();
 
         // clearInterval(this.timerId);
@@ -376,6 +392,7 @@ MyApplet.prototype = {
         this.updateClockText();
         this.startPauseButton.set_checked(false);
         this.startPauseButton.child.set_icon_name(ICON_NAME_START);
+        this.clock.set_style(CLOCK_STYLE)
         this.showAllClockAdjustButtons();
 
         // this.startButton.label.text = BUTTON_LABEL_START;
@@ -384,6 +401,11 @@ MyApplet.prototype = {
         // this.pauseButton.setSensitive(false);
         // this.startButton.setSensitive(true);
         // this.set_applet_label('');
+    },
+
+    clearTimer() {
+        this.timerCurrentSec = this.timerInitialSec = 0;
+        this.resetTimer();
     },
 
     tickTimer() {
@@ -595,21 +617,22 @@ function getIcon(name, size) {
         icon_type: St.IconType.SYMBOLIC,
         icon_name: name,
         icon_size: size,
+        // style_class: 'popup-menu-icon'
         // style: 'icon-size: 20px;',
         // style_class: 'popup-menu-icon' // this specifies the icon-size
     })
 }
 
-function getButton(iconName, isToggle = false) {
+function getButton(iconName, isToggle = false, style = '') {
     const button = new St.Button({
         // name: buttonName,
         toggle_mode: isToggle,
         reactive: true,
-        // can_focus: true,
-        // track_hover: true,
+        can_focus: true,
+        track_hover: true,
         // It is challenging to get a reasonable style on all themes. I have tried using the 'sound-player-overlay' class but didn't get it working. However might be possible anyway.  
         style_class: 'popup-menu-item',
-        style: 'width: 20px; padding: 10px 5px;',
+        style,
         child: iconName
     });
 
@@ -626,10 +649,28 @@ function getButton(iconName, isToggle = false) {
 function getClockDigit(text) {
     const label = new St.Label({
         text,
-        style: 'font-size: 20px;',
+        style: 'font-size: 22px;',
     });
 
-    const bin = new St.Bin();
+    const bin = new St.Bin({
+        style: 'width: 15px;',
+    });
+    bin.set_child(label);
+
+    return bin;
+}
+
+function getClockColon() {
+    const label = new St.Label({
+        text: ':',
+        style: 'font-size: 22px; height: 20px;',
+    });
+
+    const bin = new St.Bin({
+        // y_align: Clutter.ActorAlign.CENTER,
+        // x_align: Clutter.ActorAlign.CENTER,
+        // style: 'height: 100px;'
+    });
     bin.set_child(label);
 
     return bin;
