@@ -8,7 +8,7 @@ const St = imports.gi.St;
 const Clutter = imports.gi.Clutter;
 const GLib = imports.gi.GLib;
 const Gettext = imports.gettext;
-const UUID = 'ntimer@nate';
+const UUID = 'simple-timer@naheller';
 
 Gettext.bindtextdomain(UUID, GLib.get_home_dir() + '/.local/share/locale');
 
@@ -22,10 +22,11 @@ const ONE_MIN_IN_SECONDS = 60;
 const ONE_HOUR_IN_SECONDS = ONE_MIN_IN_SECONDS * 60;
 const ONE_DAY_IN_SECONDS = ONE_HOUR_IN_SECONDS * 24;
 
-const BUTTON_LABEL_START = 'Start';
-const BUTTON_LABEL_RESUME = 'Resume';
-const BUTTON_LABEL_PAUSE = 'Pause';
-const BUTTON_LABEL_RESET = 'Reset';
+const BUTTON_TOOLTIP_START = _('Start');
+const BUTTON_TOOLTIP_RESUME = _('Resume');
+const BUTTON_TOOLTIP_PAUSE = _('Pause');
+const BUTTON_TOOLTIP_RESET = _('Reset');
+const BUTTON_TOOLTIP_CLEAR = _('Clear');
 
 // Found in /usr/share/icons/<theme-name>/symbolic/
 const ICON_NAME_START = 'media-playback-start-symbolic';
@@ -39,8 +40,8 @@ const ICON_NAME_CLEAR = 'user-trash-symbolic';
 const ICON_SIZE_LG = 20;
 const ICON_SIZE_SM = 12;
 
-const NOTIFICATION_TITLE = 'Timer';
-const NOTIFICATION_MSG = 'Time Up!';
+const NOTIFICATION_TITLE = _('Timer');
+const NOTIFICATION_MSG = _('Your timer is finished');
 
 const DIGIT_NAMES = {
     SECOND_TENS: 'SECOND_TENS',
@@ -78,18 +79,10 @@ MyApplet.prototype = {
             this.set_applet_tooltip(_('Simple Timer'));
 
             this.timerId = null;
-            this.timerInitialSec = this.timerCurrentSec = 4072;
-
-            this.timerClockMenuItem = '';
-            this.timerClockMenuItemSec = '';
-
-            // this.clockDigitSecondOnes = 8;
+            this.timerInitialSec = this.timerCurrentSec = 0;
 
             this.notificationSource = null;
             this.addNotificationSource();
-            
-            // this.startPauseButton = null;
-            // this.resetButton = null;
 
             this.buildPopupMenu();
         }
@@ -101,28 +94,23 @@ MyApplet.prototype = {
     on_applet_clicked(event) {
         this.menu.toggle();
     },
-    
-    on_applet_middle_clicked(event) {
-        // toggle play/pause?
+
+    on_applet_removed_from_panel() {
+        if (!!this.timerId) {
+            this.clearTimerInterval();
+        }
     },
 
     buildPopupMenu() {
-        this.actor.add_style_class_name('timer');
-
         this.menuManager = new PopupMenu.PopupMenuManager(this);
         this.menu = new Applet.AppletPopupMenu(this, this._orientation);
 
         const menuSection = new PopupMenu.PopupMenuSection({ style_class: 'popup-menu-section' });
 
-        // const clockString = getClockStringFromSeconds(this.timerCurrentSec);
-        // this.clockStringBin = getClockStringBin(clockString);
-        // this.clockStringBin.hide();
-        
         this.clock = this.getClock();
         this.controlBar = this.getControlBar();
         
         menuSection.actor.add_actor(this.clock);
-        // menuSection.actor.add_actor(this.clockStringBin);
         menuSection.actor.add_actor(this.controlBar);
         
         this.menu.addMenuItem(menuSection);
@@ -143,11 +131,8 @@ MyApplet.prototype = {
         const clockBox = new St.BoxLayout({
             name: 'clock',
             x_align: Clutter.ActorAlign.CENTER,
-            // y_align: Clutter.ActorAlign.CENTER,
             style: CLOCK_STYLE
         });
-
-        global.log('clockBox.get_style_class_name()', clockBox.get_style_class_name())
 
         clockBox.add_child(hourTensColumn);
         clockBox.add_child(hourOnesColumn);
@@ -222,7 +207,6 @@ MyApplet.prototype = {
         const column = new St.BoxLayout({
             vertical: true,
             y_align: Clutter.ActorAlign.CENTER,
-            // style: 'height: 100px;'
         });
 
         column.add_child(this[incrementButtonName]);
@@ -262,13 +246,13 @@ MyApplet.prototype = {
         // Tooltips
 
         this.startPauseButton.tooltip = new Tooltips.Tooltip(this.startPauseButton)
-        this.startPauseButton.tooltip.set_text('Start')
+        this.startPauseButton.tooltip.set_text(BUTTON_TOOLTIP_START)
 
         this.resetButton.tooltip = new Tooltips.Tooltip(this.resetButton)
-        this.resetButton.tooltip.set_text('Reset')
+        this.resetButton.tooltip.set_text(BUTTON_TOOLTIP_RESET)
 
         this.clearButton.tooltip = new Tooltips.Tooltip(this.clearButton)
-        this.clearButton.tooltip.set_text('Clear')
+        this.clearButton.tooltip.set_text(BUTTON_TOOLTIP_CLEAR)
 
         const controlBar = new St.BoxLayout({
             x_align: Clutter.ActorAlign.CENTER
@@ -277,10 +261,6 @@ MyApplet.prototype = {
         controlBar.add_child(this.startPauseButton);
         controlBar.add_child(this.resetButton);
         controlBar.add_child(this.clearButton);
-
-        // this.resetButton.set_style('height:0;')
-
-        // global.log('this.resetButton', this.resetButton)
 
         return controlBar;
     },
@@ -306,8 +286,6 @@ MyApplet.prototype = {
 
     showNotification(msg) {
         let notification = new MessageTray.Notification(this.notificationSource, NOTIFICATION_TITLE, msg);
-        // notification.setTransient(false);
-        // notification.setUrgency(MessageTray.Urgency.NORMAL);
         this.notificationSource.notify(notification);
     },
 
@@ -326,19 +304,10 @@ MyApplet.prototype = {
             TIMER_INTERVAL_MS
         );
 
-        // global.log('this.startPauseButton', this.startPauseButton)
-
         this.startPauseButton.child.set_icon_name(ICON_NAME_PAUSE);
         this.clock.set_style(CLOCK_STYLE_ACTIVE);
-        this.startPauseButton.tooltip.set_text('Pause');
+        this.startPauseButton.tooltip.set_text(BUTTON_TOOLTIP_PAUSE);
         this.hideAllClockAdjustButtons();
-
-        // this.clock.hide();
-        // this.clockStringBin.show();
-
-        // this.startButton.setSensitive(false);
-        // this.pauseButton.setSensitive(true);
-        // this.resetButton.setSensitive(true);
     },
 
     pauseTimer() {
@@ -350,50 +319,22 @@ MyApplet.prototype = {
         this.startPauseButton.child.set_icon_name(ICON_NAME_START);
         this.clock.set_style(CLOCK_STYLE)
         this.showAllClockAdjustButtons();
-        this.startPauseButton.tooltip.set_text('Resume')
-
-        // this.clock.show();
-        // this.clockStringBin.hide();
-
-        // clearInterval(this.timerId);
-        // this.timerCurrentSec = this.timerInitialSec;
-        // this.timerId = null;
-        // this.timerClockMenuItem.label.text = `${this.timerInitialSec}`;
-        // this.resetButton.setSensitive(false);
-        // this.set_applet_label('');
-
-        // this.startPauseButton.child = ICON_NAME_PAUSE;
-
-        // this.startButton.setSensitive(true);
-        // this.startButton.label.text = BUTTON_LABEL_RESUME;
+        this.startPauseButton.tooltip.set_text(BUTTON_TOOLTIP_RESUME)
     },
 
     resetTimer() {
-        // if (this.timerId === null) {
-        //     return;
-        // }
+        if (this.timerId !== null) {
+            this.clearTimerInterval();
+        }
 
-        this.clearTimerInterval();
-        // clearInterval(this.timerId);
         this.timerCurrentSec = this.timerInitialSec;
-        // this.timerId = null;
 
         this.updateClockText();
         this.startPauseButton.set_checked(false);
         this.startPauseButton.child.set_icon_name(ICON_NAME_START);
         this.clock.set_style(CLOCK_STYLE)
         this.showAllClockAdjustButtons();
-        this.startPauseButton.tooltip.set_text('Start')
-
-        // this.clock.show();
-        // this.clockStringBin.hide();
-
-        // this.startButton.label.text = BUTTON_LABEL_START;
-
-        // this.resetButton.setSensitive(false);
-        // this.pauseButton.setSensitive(false);
-        // this.startButton.setSensitive(true);
-        // this.set_applet_label('');
+        this.startPauseButton.tooltip.set_text(BUTTON_TOOLTIP_START)
     },
 
     clearTimer() {
@@ -404,7 +345,6 @@ MyApplet.prototype = {
     tickTimer() {
         --this.timerCurrentSec;
         this.updateClockText();
-        // this.set_applet_label(`${this.timerCurrentSec}`);
     },
 
     clearTimerInterval() {
@@ -412,23 +352,8 @@ MyApplet.prototype = {
         this.timerId = null;
     },
 
-    // updateControlBar() {
-    //     if (this.timerId === null) {
-    //         this.startPauseButton.checked = false;
-    //         this.startPauseButton.child.set_icon_name(ICON_NAME_START);
-    //     } else {
-    //         this.startPauseButton.checked = true;
-    //         this.startPauseButton.child.set_icon_name(ICON_NAME_PAUSE);
-    //     }
-    // },
-
     updateClockText() {
         const clockString = getClockStringFromSeconds(this.timerCurrentSec);
-
-        // this.timerClockMenuItem.label.text = clockString;
-        // this.timerClockMenuItemSec.label.text = `${this.timerCurrentSec}`;
-
-        // this.clockStringBin.child.set_text(clockString);
         this.set_applet_tooltip(clockString);
 
         const {
@@ -589,19 +514,10 @@ function getSecondsFromClockString(hourStr, minStr, secStr) {
 }
 
 function setInterval(callback, ms) {
-    // let args = [];
-    // if (arguments.length > 2) {
-    //     args = args.slice.call(arguments, 2);
-    // }
-
     let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
         callback.call(null);
-        // callback.call(null, ...args);
-        return true; // Repeat
+        return true;
     });
-
-    // if (id && (_sourceIds.indexOf(id) === -1)) _sourceIds.push(id);
-
     return id;
 }
 
@@ -616,15 +532,11 @@ function getIcon(name, size) {
         icon_type: St.IconType.SYMBOLIC,
         icon_name: name,
         icon_size: size,
-        // style_class: 'popup-menu-icon'
-        // style: 'icon-size: 20px;',
-        // style_class: 'popup-menu-icon' // this specifies the icon-size
     })
 }
 
 function getButton(iconName, style = '', isToggle = false) {
     const button = new St.Button({
-        // name: buttonName,
         toggle_mode: isToggle,
         reactive: true,
         can_focus: true,
@@ -657,29 +569,11 @@ function getClockColon() {
         style: `font-size: ${FONT_SIZE};`,
     });
 
-    const bin = new St.Bin({
-        // y_align: Clutter.ActorAlign.CENTER,
-        // x_align: Clutter.ActorAlign.CENTER,
-        // style: 'height: 100px;'
-    });
+    const bin = new St.Bin();
     bin.set_child(label);
 
     return bin;
 }
-
-// function getClockStringBin(clockString) {
-//     const label = new St.Label({
-//         text: clockString,
-//         style: `font-size: ${FONT_SIZE};`,
-//     });
-
-//     const bin = new St.Bin({
-//         style: CLOCK_STYLE_ACTIVE,
-//     });
-//     bin.set_child(label);
-
-//     return bin;
-// }
 
 function main(metadata, orientation, panelHeight, instanceId) {
     let myApplet = new MyApplet(metadata, orientation, panelHeight, instanceId);
