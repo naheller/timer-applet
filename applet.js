@@ -75,7 +75,7 @@ MyApplet.prototype = {
         Applet.IconApplet.prototype._init.call(this, orientation, panelHeight, instanceId);
 
         try {
-            this.set_applet_icon_symbolic_name('alarm');
+            this.set_applet_icon_symbolic_name('alarm-white');
             this.set_applet_tooltip(_('Simple Timer'));
 
             this.timerId = null;
@@ -308,6 +308,7 @@ MyApplet.prototype = {
         this.clock.set_style(CLOCK_STYLE_ACTIVE);
         this.startPauseButton.tooltip.set_text(BUTTON_TOOLTIP_PAUSE);
         this.hideAllClockAdjustButtons();
+        this.set_applet_icon_symbolic_name('alarm-green');
     },
 
     pauseTimer() {
@@ -320,6 +321,7 @@ MyApplet.prototype = {
         this.clock.set_style(CLOCK_STYLE)
         this.showAllClockAdjustButtons();
         this.startPauseButton.tooltip.set_text(BUTTON_TOOLTIP_RESUME)
+        this.set_applet_icon_symbolic_name('alarm-white');
     },
 
     resetTimer() {
@@ -335,6 +337,7 @@ MyApplet.prototype = {
         this.clock.set_style(CLOCK_STYLE)
         this.showAllClockAdjustButtons();
         this.startPauseButton.tooltip.set_text(BUTTON_TOOLTIP_START)
+        this.set_applet_icon_symbolic_name('alarm-white');
     },
 
     clearTimer() {
