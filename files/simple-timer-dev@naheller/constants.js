@@ -1,6 +1,6 @@
 const GLib = imports.gi.GLib;
 const Gettext = imports.gettext;
-const UUID = 'simple-timer@naheller';
+const UUID = 'simple-timer-dev@naheller';
 
 Gettext.bindtextdomain(UUID, GLib.get_home_dir() + '/.local/share/locale');
 
@@ -37,7 +37,6 @@ const ICON_SIZE_LG = 20;
 const ICON_SIZE_SM = 12;
 
 const NOTIFICATION_TITLE = _('Timer');
-const NOTIFICATION_MSG = _('Your timer is finished');
 
 const DIGIT_NAMES = {
     SECOND_TENS: 'SECOND_TENS',
