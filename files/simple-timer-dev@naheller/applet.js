@@ -24,7 +24,6 @@ const {
     CLOCK_DECREMENT,
     CLOCK_STYLES,
     CONTROL_BUTTON_STYLE,
-    FONT_SIZE,
     APPLET_ICON_NAME,
     APPLET_ICON_GREEN,
     APPLET_ICON_TOOLTIP
@@ -121,10 +120,10 @@ MyApplet.prototype = {
 
         clockBox.add_child(hourTensColumn);
         clockBox.add_child(hourOnesColumn);
-        clockBox.add_child(getClockDigit(':'));
+        clockBox.add_child(getClockDigit(':', CLOCK_STYLES.COLON));
         clockBox.add_child(minuteTensColumn);
         clockBox.add_child(minuteOnesColumn);
-        clockBox.add_child(getClockDigit(':'));
+        clockBox.add_child(getClockDigit(':', CLOCK_STYLES.COLON));
         clockBox.add_child(secondTensColumn);
         clockBox.add_child(secondOnesColumn);
 
@@ -384,6 +383,18 @@ MyApplet.prototype = {
         this[SECOND_TENS].child.set_text(`${secondTens}`);
         this[SECOND_ONES].child.set_text(`${secondOnes}`);
 
+        /**
+         * Below is needed to force each clock digit's StLabel to recalculate its width on each tick.
+         * Without this, a label holding a narrow digit like "1" will not expand its width
+         * to hold a wider digit like "0", causing the wider digit to be partially cut off.
+         * 
+         * This is only needed while the menu is open.
+         **/
+        if (this.menu.isOpen) {
+            this.clock.hide();
+            this.clock.show();
+        }
+
         // Disable startPauseButton when timer is at 0
         this.startPauseButton.reactive = this.timerCurrentSec != 0;
     },
@@ -580,27 +591,14 @@ function getButton(iconName, style = '', isToggle = false) {
     return button;
 }
 
-function getClockDigit(text) {
+function getClockDigit(text, style = '') {
     const label = new St.Label({
         text,
-        style: `font-size: ${FONT_SIZE};`
     });
 
     const bin = new St.Bin({
-        style: 'width: 15px;',
+        style
     });
-    bin.set_child(label);
-
-    return bin;
-}
-
-function getClockColon() {
-    const label = new St.Label({
-        text: ':',
-        style: `font-size: ${FONT_SIZE};`,
-    });
-
-    const bin = new St.Bin();
     bin.set_child(label);
 
     return bin;
